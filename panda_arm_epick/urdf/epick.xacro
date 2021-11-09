@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot xmlns:xacro="https://ros.org/wiki/xacro">
+  <!-- Here we define the 2 parameters of the macro -->
+  <xacro:macro name="epick" params="prefix connected_to">
+    <!-- Create a fixed joint with a parameterized name. -->
+    <joint name="${prefix}epick_base_joint" type="fixed">
+      <!-- The parent link must be read from the robot model it is attached to. -->
+      <parent link="${connected_to}"/>
+      <child link="${prefix}epick_base"/>
+      <!-- The tool is directly attached to the flange. -->
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+    </joint>
+    <link name="${prefix}epick_base">
+      <visual>
+        <geometry>
+          <!-- The path to the visual meshes in the package. -->
+          <mesh filename="package://panda_arm_epick/meshes/epick_base.stl"/>
+        </geometry>
+      </visual>
+      <collision>
+        <geometry>
+          <!-- The path to the collision meshes in the package. -->
+          <mesh filename="package://panda_arm_epick/meshes/epick_base.stl"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="${prefix}epick_body_joint" type="fixed">
+      <!-- The parent link must be read from the robot model it is attached to. -->
+      <parent link="${prefix}epick_base"/>
+      <child link="${prefix}epick_body"/>
+      <!-- The tool is directly attached to the flange. -->
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+    </joint>
+    <link name="${prefix}epick_body">
+      <visual>
+        <geometry>
+          <!-- The path to the visual meshes in the package. -->
+          <mesh filename="package://panda_arm_epick/meshes/epick_body.stl"/>
+        </geometry>
+      </visual>
+      <collision>
+        <geometry>
+          <!-- The path to the collision meshes in the package. -->
+          <mesh filename="package://panda_arm_epick/meshes/epick_body.stl"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="${prefix}epick_suction_cup_joint" type="fixed">
+      <!-- The parent link must be read from the robot model it is attached to. -->
+      <parent link="${prefix}epick_body"/>
+      <child link="${prefix}epick_suction_cup"/>
+      <!-- The tool is directly attached to the flange. -->
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+    </joint>
+    <link name="${prefix}epick_suction_cup">
+      <visual>
+        <geometry>
+          <!-- The path to the visual meshes in the package. -->
+          <mesh filename="package://panda_arm_epick/meshes/epick_suction_cup.stl"/>
+        </geometry>
+      </visual>
+      <collision>
+        <geometry>
+          <!-- The path to the collision meshes in the package. -->
+          <mesh filename="package://panda_arm_epick/meshes/epick_suction_cup.stl"/>
+        </geometry>
+      </collision>
+    </link>
+
+  </xacro:macro>
+</robot>

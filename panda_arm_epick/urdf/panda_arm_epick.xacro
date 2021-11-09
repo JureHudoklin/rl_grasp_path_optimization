@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="https://ros.org/wiki/xacro" name="panda_arm_epick">
+
+  <!-- panda_arm_epick -->
+  <xacro:include filename="$(find franka_description)/robots/panda_arm.urdf.xacro" />
+  <!-- end-effector -->
+  <xacro:include filename="epick.xacro" />
+
+  <!-- ur5 -->
+  <!-- The panda_arm xacro must be included with passing parameters -->
+  <xacro:panda_arm/>
+  <!-- end-effector -->
+  <!-- Here we include the end-effector by setting the parameters -->
+  <!-- TODO: check end-effector link name of robot -->
+  <xacro:epick prefix="epick" connected_to="panda_link8"/>
+
+  <!-- define the ur5's position and orientation in the world coordinate system -->
+  <link name="world" />
+  <joint name="world_joint" type="fixed">
+    <parent link="world" />
+    <child link="base_link" /> <!-- TODO: check base_link name of robot -->
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+</robot>

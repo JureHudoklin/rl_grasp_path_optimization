@@ -1,0 +1,3 @@
+<launch>
+  <node name="panda_path_planner" pkg="panda_path_planner" type="panda_path_planner_node.py" output="screen" />
+</launch>

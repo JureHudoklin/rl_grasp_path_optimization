@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-1-g15f4949  Build Version: 1.6.7594.29634
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot
+  name="robotiq_epick_visualization">
+  <link
+    name="epick_base">
+    <inertial>
+      <origin
+        xyz="-0.00159385301552479 -3.69583976272876E-05 0.00454370332864274"
+        rpy="0 0 0" />
+      <mass
+        value="0.0460304620234243" />
+      <inertia
+        ixx="2.23567944654021E-05"
+        ixy="2.71487895251577E-09"
+        ixz="-1.73798284980061E-07"
+        iyy="1.77064733712542E-05"
+        iyz="-3.0311450737166E-09"
+        izz="3.84505276588247E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://robotiq_epick_visualization/meshes/epick_base.STL" />
+      </geometry>
+      <material
+        name="epick_base">
+        <color
+          rgba="0 0 0 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://robotiq_epick_visualization/meshes/epick_base.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="epick_body">
+    <inertial>
+      <origin
+        xyz="-1.27202258461385E-05 -0.0447970798267975 5.01250496631911E-08"
+        rpy="0 0 0" />
+      <mass
+        value="0.373948999735613" />
+      <inertia
+        ixx="0.00050773436068158"
+        ixy="2.04921968963051E-07"
+        ixz="2.66668569495952E-10"
+        iyy="0.000254717369095251"
+        iyz="9.92302641826219E-10"
+        izz="0.00040813385636111" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://robotiq_epick_visualization/meshes/epick_body.STL" />
+      </geometry>
+      <material
+        name="epick_body">
+        <color
+          rgba="0 0 0 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://robotiq_epick_visualization/meshes/epick_body.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="epick_body_joint"
+    type="fixed">
+    <origin
+      xyz="0 0 0.1058"
+      rpy="1.5707963267949 0 3.14159265358979" />
+    <parent
+      link="epick_base" />
+    <child
+      link="epick_body" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  <link
+    name="epick_suction_cup">
+    <inertial>
+      <origin
+        xyz="-5.29772649266883E-16 0.0206207573049873 -1.10563958761004E-16"
+        rpy="0 0 0" />
+      <mass
+        value="0.00999800959965819" />
+      <inertia
+        ixx="4.2634900830817E-06"
+        ixy="5.59412288033633E-21"
+        ixz="-2.45118574794691E-11"
+        iyy="3.21956811082037E-06"
+        iyz="-3.20417243322173E-20"
+        izz="4.26378797246115E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://robotiq_epick_visualization/meshes/epick_suction_cup.STL" />
+      </geometry>
+      <material
+        name="suction_cup">
+        <color
+          rgba="0 0 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://robotiq_epick_visualization/meshes/epick_suction_cup.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="epick_suction_cup_joint"
+    type="fixed">
+    <origin
+      xyz="0 0.00730000000000072 0"
+      rpy="3.14159265358979 0 -3.14159265358979" />
+    <parent
+      link="epick_body" />
+    <child
+      link="epick_suction_cup" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+</robot>
