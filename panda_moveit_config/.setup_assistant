@@ -1,11 +1,11 @@
 moveit_setup_assistant_config:
   URDF:
-    package: franka_description
-    relative_path: robots/panda_arm.urdf.xacro
+    package: rl_scene_description
+    relative_path: urdf/rl_scene_full.urdf
     xacro_args: ""
   SRDF:
-    relative_path: config/panda.srdf
+    relative_path: config/rl_scene.srdf
   CONFIG:
-    author_name: jure
-    author_email: email@email.com
-    generated_timestamp: 1636442564
+    author_name: Jure Hudoklin
+    author_email: jurehudoklin@g.skku.edu
+    generated_timestamp: 1636622199

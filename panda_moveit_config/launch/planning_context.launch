@@ -6,10 +6,10 @@
   <arg name="robot_description" default="robot_description"/>
 
   <!-- Load universal robot description format (URDF) -->
-  <param if="$(arg load_robot_description)" name="$(arg robot_description)" command="xacro  '$(find franka_description)/robots/panda_arm.urdf.xacro'"/>
+  <param if="$(arg load_robot_description)" name="$(arg robot_description)" textfile="$(find rl_scene_description)/urdf/rl_scene_full.urdf"/>
 
   <!-- The semantic description that corresponds to the URDF -->
-  <param name="$(arg robot_description)_semantic" textfile="$(find panda_moveit_config)/config/panda.srdf" />
+  <param name="$(arg robot_description)_semantic" textfile="$(find panda_moveit_config)/config/rl_scene.srdf" />
 
   <!-- Load updated joint limits (override information from URDF) -->
   <group ns="$(arg robot_description)_planning">

@@ -3,10 +3,10 @@
   <name>panda_moveit_config</name>
   <version>0.3.0</version>
   <description>
-     An automatically generated package with all the configuration and launch files for using the panda with the MoveIt! Motion Planning Framework
+     An automatically generated package with all the configuration and launch files for using the rl_scene with the MoveIt! Motion Planning Framework
   </description>
-  <author email="email@email.com">jure</author>
-  <maintainer email="email@email.com">jure</maintainer>
+  <author email="jurehudoklin@g.skku.edu">Jure Hudoklin</author>
+  <maintainer email="jurehudoklin@g.skku.edu">Jure Hudoklin</maintainer>
 
   <license>BSD</license>
 
@@ -31,7 +31,7 @@
   <run_depend>xacro</run_depend>
   <!-- This package is referenced in the warehouse launch files, but does not build out of the box at the moment. Commented the dependency until this works. -->
   <!-- <run_depend>warehouse_ros_mongo</run_depend> -->
-    <run_depend>franka_description</run_depend>
+    <run_depend>rl_scene_description</run_depend>
 
 
 </package>

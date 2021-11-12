@@ -182,6 +182,7 @@ class CoppeliaSimManipulatorDriver(object):
         Args:
             msg (`JointTrajectory`): Joint trajectory of the planned path.
         """
+        print("NEki se je zgodil")
         msg  = msg.trajectory.pop(0).joint_trajectory
         if msg.points:
             joint_names, joint_trajectory = self.interpolate_joint_trajectory(
@@ -201,6 +202,7 @@ class CoppeliaSimManipulatorDriver(object):
             bundle = zip(self.joint_trajectory_joint_names,
                          desired_joint_positions)
             for name, desired_joint_position in bundle:
+                print("Setting desired position")
                 self.client.simxSetJointTargetPosition(
                     self.obj_handles[name], desired_joint_position,
                     self.sim_joint_state_pub[name])
@@ -291,8 +293,8 @@ if __name__ == '__main__':
     # init ros
     rospy.init_node('coppeliasim_panda_driver')
     #joint_names = rospy.get_param('controller_joint_names')
-    joint_names = ['panda_joint1', 'panda_joint2', 'panda_joint3',
-                   'panda_joint4', 'panda_joint5', 'panda_joint6', 'panda_joint7']
+    joint_names = ['panda_1_joint1', 'panda_1_joint2', 'panda_1_joint3',
+                   'panda_1_joint4', 'panda_1_joint5', 'panda_1_joint6', 'panda_1_joint7']
 
     # init sim
     client_ID = 'b0RemoteApi_robot_client_{}'.format(id_generator())

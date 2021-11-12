@@ -1,0 +1,114 @@
+<?xml version="1.0" ?>
+<robot name="robotiq_epick_extend_visualization" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="epick_extend" params="connected_to rpy:='0 0 0' xyz:='0 0 0'">
+
+  <link name="epick_base_link">
+    <inertial>
+      <origin rpy="0 0 0" xyz="-0.001521468280518744 -8.327651370715472e-10 0.004640127539862546"/>
+      <mass value="0.3785313071771136"/>
+      <inertia ixx="0.000178" ixy="0.0" ixz="-1e-06" iyy="0.000141" iyz="-0.0" izz="0.000306"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://robotiq_epick_extend_visualization/meshes/base_link.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="silver"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://robotiq_epick_extend_visualization/meshes/base_link.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="link_1_1">
+    <inertial>
+      <origin rpy="0 0 0" xyz="-1.2822483498983834e-05 2.979359950254862e-08 0.04999856193861457"/>
+      <mass value="2.921844047943221"/>
+      <inertia ixx="0.003985" ixy="0.0" ixz="2e-06" iyy="0.003203" iyz="0.0" izz="0.001999"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="-0.0 -0.0 -0.011"/>
+      <geometry>
+        <mesh filename="package://robotiq_epick_extend_visualization/meshes/link_1_1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="silver"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="-0.0 -0.0 -0.011"/>
+      <geometry>
+        <mesh filename="package://robotiq_epick_extend_visualization/meshes/link_1_1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="link_2_1">
+    <inertial>
+      <origin rpy="0 0 0" xyz="-7.266048443006144e-17 -7.629395937518559e-09 0.03799999999999991"/>
+      <mass value="0.15181620834766535"/>
+      <inertia ixx="7.6e-05" ixy="-0.0" ixz="0.0" iyy="7.6e-05" iyz="-0.0" izz="6e-06"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0.0 -0.0 -0.11055"/>
+      <geometry>
+        <mesh filename="package://robotiq_epick_extend_visualization/meshes/link_2_1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="silver"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.0 -0.0 -0.11055"/>
+      <geometry>
+        <mesh filename="package://robotiq_epick_extend_visualization/meshes/link_2_1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="link_3_1">
+    <inertial>
+      <origin rpy="0 0 0" xyz="-1.410228548302926e-12 -7.629395925850442e-09 0.017251953219943994"/>
+      <mass value="0.059864212227098965"/>
+      <inertia ixx="1e-05" ixy="-0.0" ixz="0.0" iyy="1e-05" iyz="-0.0" izz="7e-06"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0.0 0.0 -0.18655"/>
+      <geometry>
+        <mesh filename="package://robotiq_epick_extend_visualization/meshes/link_3_1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="silver"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.0 0.0 -0.18655"/>
+      <geometry>
+        <mesh filename="package://robotiq_epick_extend_visualization/meshes/link_3_1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="epick_joint_1" type="fixed">
+    <origin xyz="${xyz}" rpy="${rpy}"/>
+    <parent link="${connected_to}"/>
+    <child link="epick_base_link"/>
+  </joint>
+
+  <joint name="epick_joint_2" type="fixed">
+    <origin rpy="0 0 0" xyz="0.0 0.0 0.011"/>
+    <parent link="epick_base_link"/>
+    <child link="link_1_1"/>
+  </joint>
+
+  <joint name="epick_joint_3" type="fixed">
+    <origin rpy="0 0 0" xyz="-0.0 0.0 0.09955"/>
+    <parent link="link_1_1"/>
+    <child link="link_2_1"/>
+  </joint>
+
+  <joint name="epick_joint_4" type="fixed">
+    <origin rpy="0 0 0" xyz="0.0 -0.0 0.076"/>
+    <parent link="link_2_1"/>
+    <child link="link_3_1"/>
+  </joint>
+  </xacro:macro>
+</robot>
