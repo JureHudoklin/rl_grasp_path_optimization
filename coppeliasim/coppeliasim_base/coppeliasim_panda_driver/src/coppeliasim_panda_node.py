@@ -292,9 +292,9 @@ class CoppeliaSimManipulatorDriver(object):
 if __name__ == '__main__':
     # init ros
     rospy.init_node('coppeliasim_panda_driver')
-    #joint_names = rospy.get_param('controller_joint_names')
-    joint_names = ['panda_1_joint1', 'panda_1_joint2', 'panda_1_joint3',
-                   'panda_1_joint4', 'panda_1_joint5', 'panda_1_joint6', 'panda_1_joint7']
+    joint_names = rospy.get_param('joint_names')
+    # joint_names = ['panda_1_joint1', 'panda_1_joint2', 'panda_1_joint3',
+    #                'panda_1_joint4', 'panda_1_joint5', 'panda_1_joint6', 'panda_1_joint7']
 
     # init sim
     client_ID = 'b0RemoteApi_robot_client_{}'.format(id_generator())

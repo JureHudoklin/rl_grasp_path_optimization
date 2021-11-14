@@ -1,0 +1,4 @@
+<launch>
+    <node name="coppeliasim_interface" pkg="coppeliasim_interface" type="coppeliasim_interface_node.py" output="screen" />
+    <node name="coppeliasim_master" pkg="coppeliasim_master" type="coppeliasim_master_node.py" output="screen" />
+</launch>

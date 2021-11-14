@@ -1,4 +1,0 @@
-<?xml version="1.0" ?>
-<robot name="robotiq_epick_extend_visualization" xmlns:xacro="http://www.ros.org/wiki/xacro" >
-
-</robot>

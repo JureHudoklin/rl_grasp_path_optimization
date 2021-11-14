@@ -1,0 +1,132 @@
+<?xml version="1.0" ?>
+<robot name="rl_scene" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:arg name="arm_id_1" default="panda_1" />
+
+  <xacro:include filename="$(find rl_scene_description)/urdf/materials.xacro" />
+
+  <xacro:include filename="$(find franka_description)/robots/panda_arm.xacro"/>
+
+  <link name="base_link">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0 -2.3283064365386967e-16 -0.005"/>
+      <mass value="1256.0"/>
+      <inertia ixx="1674.677133" ixy="-0.0" ixz="0.0" iyy="1674.677133" iyz="-0.0" izz="3349.333333"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://rl_scene_description/meshes/base_link.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="silver"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://rl_scene_description/meshes/base_link.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="link_box1_1">
+    <inertial>
+      <origin rpy="0 0 0" xyz="8.478324452852449e-17 0.0 0.03175959070611188"/>
+      <mass value="53.89391980829295"/>
+      <inertia ixx="1.185042" ixy="0.0" ixz="0.0" iyy="2.312279" iyz="-0.0" izz="3.413976"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0.0 -0.5 -0.0"/>
+      <geometry>
+        <mesh filename="package://rl_scene_description/meshes/link_box1_1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="silver"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.0 -0.5 -0.0"/>
+      <geometry>
+        <mesh filename="package://rl_scene_description/meshes/link_box1_1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="link_box2_1">
+    <inertial>
+      <origin rpy="0 0 0" xyz="1.1102230246251565e-16 0.0 0.03175959070611188"/>
+      <mass value="53.89391980829295"/>
+      <inertia ixx="2.312279" ixy="0.0" ixz="0.0" iyy="1.185042" iyz="-0.0" izz="3.413976"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="-0.5 -0.0 -0.0"/>
+      <geometry>
+        <mesh filename="package://rl_scene_description/meshes/link_box2_1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="silver"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="-0.5 -0.0 -0.0"/>
+      <geometry>
+        <mesh filename="package://rl_scene_description/meshes/link_box2_1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- GRIPPER -->
+  <link name="link_gripper">
+    <visual>
+      <origin rpy="0 0 0" xyz="-0.0 -0.0 -0.0"/>
+      <geometry>
+        <mesh filename="package://rl_scene_description/meshes/gripper.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="silver"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="-0.0 -0.0 -0.0"/>
+      <geometry>
+        <mesh filename="package://rl_scene_description/meshes/gripper.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="grasp_point">
+    <visual>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.015 0.015 0.015"/>
+      </geometry>
+      <material name="red">
+        <color rgba="0.8 0.0 0.0 0.5"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="gripper_joint_1" type="fixed">
+    <origin rpy="0 0 0" xyz="0.0 -0.0 0.173"/>
+    <parent link="link_gripper"/>
+    <child link="grasp_point"/>
+  </joint>
+
+  <!--  -->
+
+  <joint name="box2_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="0.0 0.5 0.0"/>
+    <parent link="base_link"/>
+    <child link="link_box1_1"/>
+  </joint>
+
+  <joint name="box1_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="0.5 0.0 0.0"/>
+    <parent link="base_link"/>
+    <child link="link_box2_1"/>
+  </joint>
+
+  <!-- right arm with gripper -->
+  <xacro:panda_arm arm_id="$(arg arm_id_1)" connected_to="base_link"  xyz="0.0 0.0 0.0" safety_distance="0.03"/>
+
+  <joint name="box_2_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+    <parent link="$(arg arm_id_1)_link8"/>
+    <child link="link_gripper"/>
+  </joint>
+
+
+</robot>

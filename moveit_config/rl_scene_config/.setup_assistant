@@ -1,0 +1,11 @@
+moveit_setup_assistant_config:
+  URDF:
+    package: rl_scene_description
+    relative_path: urdf/rl_scene.urdf
+    xacro_args: ""
+  SRDF:
+    relative_path: config/rl_scene.srdf
+  CONFIG:
+    author_name: Jure Hudoklin
+    author_email: jure.hudoklin97@gmail.com
+    generated_timestamp: 1636897997
