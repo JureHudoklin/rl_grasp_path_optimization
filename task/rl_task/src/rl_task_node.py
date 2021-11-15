@@ -4,6 +4,7 @@
 from coppeliasim_remote_api.bluezero import b0RemoteApi
 from coppeliasim_master.msg import CoppeliaSimSynchronous
 from coppeliasim_interface.srv import GetGrasp, GetGraspResponse
+from std_srvs.srv import Empty, EmptyResponse
 
 from geometry_msgs.msg import Point, PoseStamped, TransformStamped, Transform, Point32, Pose
 from visualization_msgs.msg import Marker
@@ -31,6 +32,7 @@ class MotionPlanner(object):
         self.move_group.set_pose_reference_frame(self.pose_reference_frame)
 
         self.get_grasp_srv = rospy.ServiceProxy('get_grasp', GetGrasp)
+        self.scene_reset_srv = rospy.ServiceProxy('scene_reset', Empty)
 
         # sleep
         rospy.sleep(1)
@@ -117,14 +119,14 @@ if __name__ == "__main__":
     motion_planner.go_home()
 
     while not rospy.is_shutdown():
-        
-        # grasp_tf = motion_planner.get_grasp
-        # if grasp_tf is None:
-        #     continue
-        # print(grasp_tf)
-        # print(grasp_tf.shape)
-        # motion_planner.go_to_pick(grasp_tf)
-        # #exit()
+        motion_planner.scene_reset_srv()
+        rospy.sleep(1)
+        grasp_tf = motion_planner.get_grasp
+        if grasp_tf is None:
+            continue
+
+        motion_planner.go_to_pick(grasp_tf)
+        exit()
         rospy.sleep(5)
 
 
