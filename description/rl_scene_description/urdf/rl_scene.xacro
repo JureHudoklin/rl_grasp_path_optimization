@@ -120,9 +120,9 @@
   </joint>
 
   <!-- right arm with gripper -->
-  <xacro:panda_arm arm_id="$(arg arm_id_1)" connected_to="base_link"  xyz="0.0 0.0 0.0" safety_distance="0.03"/>
+  <xacro:panda_arm arm_id="$(arg arm_id_1)" connected_to="base_link"  xyz="0.0 0.0 0.0" safety_distance="0"/>
 
-  <joint name="box_2_joint" type="fixed">
+  <joint name="grasp_point_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
     <parent link="$(arg arm_id_1)_link8"/>
     <child link="link_gripper"/>

@@ -2,8 +2,13 @@
     <!--- Run CoppeliaSim master client -->
     <node pkg="coppeliasim_master" type="coppeliasim_master_node.py" name="coppeliasim_master" output="screen" />
 
+    <!--- Runsimple gripepr client -->
+    <node pkg="simple_gripper" type="simple_gripper_node.py" name="simple_gripper" output="screen" />
+
     <!-- Run related moveit configuration -->
-    <include file="$(find rl_scene_config)/launch/rl_moveit_launch_v1.launch" />
+    <!-- <include file="$(find rl_scene_config)/launch/rl_moveit_launch_v1.launch" /> -->
+    <include file="$(find rl_scene_config)/launch/coppeliasim_launch.launch" />
+
 
     <node name="coppeliasim_interface" pkg="coppeliasim_interface" type="coppeliasim_interface_node.py" output="screen" />
     

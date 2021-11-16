@@ -1,0 +1,74 @@
+<launch>
+  <!-- <param name="robot1_name" type="str" value="/indy7_arm_controller"/> -->
+
+  <!-- specify the planning pipeline -->
+  <arg name="pipeline" default="ompl" />
+
+  <!-- By default, we are not in debug mode -->
+  <arg name="debug" default="false" />
+
+  <!-- By default, we will load or override the robot_description -->
+  <arg name="load_robot_description" default="true"/>
+
+  <!--
+  By default, hide joint_state_publisher's GUI
+  MoveIt!'s "demo" mode replaces the real robot driver with the joint_state_publisher.
+  The latter one maintains and publishes the current joint configuration of the simulated robot.
+  It also provides a GUI to move the simulated robot around "manually".
+  This corresponds to moving around the real robot without the use of MoveIt.
+  -->
+  <arg name="use_gui" default="false" />
+  <arg name="use_rviz" default="true" />
+
+  <!-- We do not have a robot connected, so publish fake joint states -->
+  <!-- <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" unless="$(arg use_gui)">
+    <rosparam param="source_list">[move_group/fake_controller_joint_states]</rosparam>
+  </node>
+  <node name="joint_state_publisher" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" if="$(arg use_gui)">
+    <rosparam param="source_list">[move_group/fake_controller_joint_states]</rosparam>
+  </node> -->
+
+
+  <!-- Given the published joint states, publish tf for the robot links -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen" />
+
+  <!-- Run the main MoveIt! executable without trajectory execution (we do not have controllers configured by default) -->
+  <include file="$(find rl_scene_config)/launch/move_group.launch">
+    <arg name="allow_trajectory_execution" value="true"/>
+    <arg name="fake_execution" value="false"/>
+    <arg name="info" value="true"/>
+    <arg name="debug" value="$(arg debug)"/>
+    <arg name="pipeline" value="$(arg pipeline)"/>
+    <arg name="load_robot_description" value="$(arg load_robot_description)"/>
+  </include>
+
+  <!-- Run Rviz and load the default config to see the state of the move_group node -->
+  <include file="$(find rl_scene_config)/launch/moveit_rviz.launch" if="$(arg use_rviz)">
+    <arg name="rviz_config" value="$(find rl_scene_config)/launch/moveit.rviz"/>
+    <arg name="debug" value="$(arg debug)"/>
+  </include>
+
+  <!-- Concatenate joint_states topic from from two different robot joint_states
+  <node pkg="joint_state_bridge" type="joint_state_bridge.py" name="joint_state_bridge"/> -->
+
+
+  <!-- This launch file provides a socket-based connection to ABB robots
+      using the standard ROS Industrial simple_message protocol.
+          ** a new parameter is added to control J23-linkage correction **
+      Several nodes are started, to supply both low-level robot communication
+      and higher-level actionlib support:
+          - robot_state : publishes current joint positions and robot state data
+          - motion_download_interface : command robot motion by sending motion points to robot
+          - joint_trajectory_action : actionlib interface to control robot motion
+      Usage:
+      robot_interface.launch robot_ip:=<value> [J23_coupled:=false]
+  -->
+  <rosparam command="load" file="$(find rl_scene_config)/config/panda_joint_names.yaml" />
+
+  <!-- joint_trajectory_action: provides actionlib interface for high-level robot control -->
+  <node pkg="industrial_robot_client" type="joint_trajectory_action" name="joint_trajectory_action"/>
+
+  <!-- coppeliasim robot manipulator ros driver -->
+  <node pkg="coppeliasim_panda_driver" type="coppeliasim_panda_node.py" name="panda_driver" />
+
+</launch>

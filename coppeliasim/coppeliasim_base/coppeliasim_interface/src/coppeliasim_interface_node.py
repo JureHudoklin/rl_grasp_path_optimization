@@ -229,44 +229,56 @@ class CoppeliaSimInterface(object):
                         self.tri_scene.box_pose_1)
         self.tri_scene.add_object('box_2', self.tri_scene.box_mesh_2,
                                   self.tri_scene.box_pose_2)
+
+        viable_objects = []
         for object_id in self.objects.keys():
-            self.tri_scene.add_object(object_id, self.object_meshes[object_id], np.array(self.object_tf[object_id]))
+            object_tf = self.object_tf[object_id]
+            x_in = np.allclose(object_tf[0, 3], 0.5, atol=0.3)
+            y_in = np.allclose(object_tf[1, 3], 0, atol=0.4)
+            z_in = np.allclose(object_tf[2, 3], 0, atol=1)
+            if np.alltrue([x_in, y_in, z_in]):
+                self.tri_scene.add_object(object_id, self.object_meshes[object_id], object_tf)
+                viable_objects.append(object_id)
+            #self.tri_scene.add_object(object_id, self.object_meshes[object_id], object_tf)
+
 
         response = GetGraspResponse()
 
-        random_object = random.choice(self.objects.keys())
+        while len(viable_objects) > 0:
+            random_object = random.choice(viable_objects)
+            viable_objects.remove(random_object)
 
-        samples, face_idx = trimesh.sample.sample_surface_even(
-            self.object_meshes[random_object], count=100)
-        normals = self.object_meshes[random_object].face_normals[face_idx]
+            samples, face_idx = trimesh.sample.sample_surface_even(
+                self.object_meshes[random_object], count=100)
+            normals = self.object_meshes[random_object].face_normals[face_idx]
 
-        samples = trimesh.transform_points(
-            samples, self.object_tf[random_object], translate=True)
-        normals = trimesh.transform_points(
-            normals, self.object_tf[random_object], translate=False)
+            samples = trimesh.transform_points(
+                samples, self.object_tf[random_object], translate=True)
+            normals = trimesh.transform_points(
+                normals, self.object_tf[random_object], translate=False)
 
-        for sample, a_v in zip(samples, normals):
-            if a_v[2] < 0:
-                continue
-            for i in range(10):
-                a_v_noise = vector_with_noise(a_v, 0.6)
-                tf = np.array(trimesh.geometry.align_vectors(np.array([0,0,-1]), a_v_noise))
-                tf[0:3,3] = sample
-                grasp_viable = self.tri_scene.is_colliding(self.tri_scene.gripper_mesh, tf)
-                
-                if grasp_viable:
-                    ##################
-                    my_scene = tv.VisualizationObject()
-                    my_scene.plot_coordinate_system(scale = 0.01)
-                    self.tri_scene.add_object("gripper", self.tri_scene.gripper_mesh, tf)
-                    my_scene.display(self.tri_scene.as_trimesh_scene(display=False))
-                    ##################
-                    rospy.loginfo("Found a viable grasp")
-                    response.grasp_tf = list(tf.flatten())
-                    return response
-        else:
-            rospy.logwarn("No viable grasp found")
-            return response
+            for sample, a_v in zip(samples, normals):
+                if a_v[2] < 0:
+                    continue
+                for i in range(10):
+                    a_v_noise = vector_with_noise(a_v, 0.6)
+                    tf = np.array(trimesh.geometry.align_vectors(np.array([0,0,-1]), a_v_noise))
+                    tf[0:3,3] = sample
+                    grasp_viable = self.tri_scene.is_colliding(self.tri_scene.gripper_mesh, tf)
+                    
+                    if grasp_viable:
+                        ##################
+                        # my_scene = tv.VisualizationObject()
+                        # my_scene.plot_coordinate_system(scale = 0.01)
+                        # self.tri_scene.add_object("gripper", self.tri_scene.gripper_mesh, tf)
+                        # my_scene.display(self.tri_scene.as_trimesh_scene(display=False))
+                        # #################
+                        rospy.loginfo("Found a viable grasp")
+                        response.grasp_tf = list(tf.flatten())
+                        return response
+
+        rospy.logwarn("No viable grasp found")
+        return response
 
     def scene_reset_srv_cb(self, request):
         rospy.loginfo("Resetting the scene")

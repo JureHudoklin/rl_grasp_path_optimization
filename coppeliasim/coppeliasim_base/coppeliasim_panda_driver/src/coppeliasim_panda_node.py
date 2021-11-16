@@ -94,8 +94,10 @@ class CoppeliaSimManipulatorDriver(object):
 
         # create ros subscribers
         rospy.Subscriber(
-            "/move_group/display_planned_path",
-            DisplayTrajectory,
+            #"/move_group/display_planned_path",
+            "/joint_path_command",
+            JointTrajectory,
+            #DisplayTrajectory,
             self.ros_joint_path_cb,
         )
         self.coppeliasim_synchronous_trigger_sub = rospy.Subscriber(
@@ -182,8 +184,7 @@ class CoppeliaSimManipulatorDriver(object):
         Args:
             msg (`JointTrajectory`): Joint trajectory of the planned path.
         """
-        print("NEki se je zgodil")
-        msg  = msg.trajectory.pop(0).joint_trajectory
+        #msg  = msg.trajectory.pop(0).joint_trajectory
         if msg.points:
             joint_names, joint_trajectory = self.interpolate_joint_trajectory(
                 msg, self.sim_time_step)
@@ -202,7 +203,6 @@ class CoppeliaSimManipulatorDriver(object):
             bundle = zip(self.joint_trajectory_joint_names,
                          desired_joint_positions)
             for name, desired_joint_position in bundle:
-                print("Setting desired position")
                 self.client.simxSetJointTargetPosition(
                     self.obj_handles[name], desired_joint_position,
                     self.sim_joint_state_pub[name])
@@ -263,6 +263,7 @@ class CoppeliaSimManipulatorDriver(object):
 
     def simulation_step_done_cb(self):
         # publish ros topics
+        1
         self.ros_joint_states_pub.publish(self.joint_states_msg)
         self.ros_control_states_pub.publish(self.control_states_msg)
 

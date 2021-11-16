@@ -23,8 +23,10 @@ joint_state_controller:
   type: joint_state_controller/JointStateController
   publish_rate: 50
 controller_list:
-  - name: panda_arm_controller
-    action_ns: follow_joint_trajectory
+  #- name: panda_arm_controller
+  - name: ""
+  # action_ns: follow_joint_trajectory
+    action_ns: joint_trajectory_action
     default: True
     type: FollowJointTrajectory
     joints:

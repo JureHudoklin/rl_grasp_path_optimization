@@ -414,7 +414,7 @@
     <parent link="panda_1_link7"/>
     <child link="panda_1_link8"/>
   </joint>
-  <joint name="box_2_joint" type="fixed">
+  <joint name="grasp_point_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
     <parent link="panda_1_link8"/>
     <child link="link_gripper"/>

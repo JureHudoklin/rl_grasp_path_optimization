@@ -5,8 +5,8 @@
   <description>
      An automatically generated package with all the configuration and launch files for using the rl_scene with the MoveIt! Motion Planning Framework
   </description>
-  <author email="jure.hudoklin97@gmail.com">Jure Hudoklin</author>
-  <maintainer email="jure.hudoklin97@gmail.com">Jure Hudoklin</maintainer>
+  <author email="jure@jure.com">jure</author>
+  <maintainer email="jure@jure.com">jure</maintainer>
 
   <license>BSD</license>
 

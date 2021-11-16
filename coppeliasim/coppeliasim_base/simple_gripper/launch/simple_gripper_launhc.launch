@@ -1,0 +1,3 @@
+<launch>
+  <node pkg="simple_gripper" type="simple_gripepr_node.py" name="simple_gripper" output="screen"/>
+</launch>
