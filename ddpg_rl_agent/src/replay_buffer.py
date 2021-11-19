@@ -21,11 +21,11 @@ class ReplayBuffer(object):
     def __init__(self, buff_mem_size, input_shape, n_actions):
         self.buff_mem_size = buff_mem_size
         self.mem_counter = 0
-        self.state_memory = np.zeros((self.buff_mem_size, *input_shape))
-        self.new_state_memory = np.zeros((self.buff_mem_size, *input_shape))
+        self.state_memory = np.zeros((self.buff_mem_size, input_shape))
+        self.new_state_memory = np.zeros((self.buff_mem_size, input_shape))
         self.action_memory = np.zeros((self.buff_mem_size, n_actions))
         self.reward_memory = np.zeros(self.buff_mem_size)
-        self.terminal_memory = np.zeros(self.buff_mem_size, dtype=np.float32)
+        self.terminal_memory = np.zeros(self.buff_mem_size, dtype=np.bool)
 
     def store_transition(self, state, action, reward, next_state, done):
         # If we input index higher than memory size go to beginning

@@ -5,16 +5,19 @@ from coppeliasim_remote_api.bluezero import b0RemoteApi
 from coppeliasim_master.msg import CoppeliaSimSynchronous
 from coppeliasim_interface.srv import GetGrasp, GetGraspResponse
 from std_srvs.srv import Empty, EmptyResponse
+from rl_task.srv import RLStep, RLStepResponse
+from rl_task.srv import RLReset, RLResetResponse
 
 from geometry_msgs.msg import Point, PoseStamped, TransformStamped, Transform, Point32, Pose
 from visualization_msgs.msg import Marker
 from sensor_msgs.msg import JointState
 from moveit_msgs.msg import RobotState, RobotTrajectory, DisplayTrajectory
 from trajectory_msgs.msg import JointTrajectory
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, Float64MultiArray
 
 import rospy
 import numpy as np
+import time
 import random
 import string
 import trimesh
@@ -36,10 +39,14 @@ class MotionPlanner(object):
         # Methods for calling services
         self.get_grasp_srv = rospy.ServiceProxy('get_grasp', GetGrasp)
         self.scene_reset_srv = rospy.ServiceProxy('scene_reset', Empty)
-
         # Create services
-        # self.do_rl_step = rospy.Service(
-        #     "/rl_step_srv", RLStep, self.do_rl_step_cb)
+        self.do_rl_step = rospy.Service(
+            "/rl_step_srv", RLStep, self.env_step_cb)
+        self.do_rl_step = rospy.Service(
+            "/rl_reset_srv", RLReset, self.env_reset_cb)
+        # Ros subscribers
+        self.force_torque_sub = rospy.Subscriber(
+            "/force_torque", Float64MultiArray, self.update_state_cb)
 
         # sleep
         rospy.sleep(1)
@@ -130,7 +137,38 @@ class MotionPlanner(object):
 
         return True
 
-    def do_rl_step_cb(self, msg):
+    def update_state_cb(self, msg):
+        self.force_torque = np.array([msg.data[0], msg.data[1], msg.data[2], msg.data[3], msg.data[4], msg.data[5]])
+        return None
+    
+    def calculate_reward(self):
+        coef_friction = 0.5
+        model_r = 16
+        vacuum = 0.07
+        # Vacuum force
+        suction_cup_area = np.pi*32**2
+        vacuum_force = suction_cup_area*vacuum
+
+        max_wrench = {"f_x": coef_friction*(vacuum_force),
+                      "f_y": coef_friction*(vacuum_force),
+                      "f_z": vacuum_force,
+                      "t_x": np.pi*model_r*0.005,
+                      "t_y": np.pi*model_r*0.005,
+                      "t_z": model_r*coef_friction*(vacuum_force)/1000}
+
+        # Friction
+        x_dir = np.sqrt(3)*abs(self.force_torque[0])/max_wrench["f_x"]
+        y_dir = np.sqrt(3)*abs(self.force_torque[1])/max_wrench["f_y"]
+        z_dir = abs(self.force_torque[2])/max_wrench["f_z"]
+        x_torque = np.sqrt(2)*abs(self.force_torque[3])/max_wrench["t_x"]
+        y_torque = np.sqrt(2)*abs(self.force_torque[4])/max_wrench["t_y"]
+        z_torque = np.sqrt(3)*abs(self.force_torque[5])/max_wrench["t_z"]
+
+        reward = - x_dir - y_dir - x_torque - y_torque - z_torque
+        return reward
+
+    def env_reset_cb(self, msg):
+        response = RLResetResponse()
         # Get one grasp
         success = None
         while success is not True:
@@ -143,8 +181,38 @@ class MotionPlanner(object):
                     motion_planner.go_home("out_of_way")
                     motion_planner.scene_reset_srv()
                 continue
+        
+        rospy.sleep(1)
+        response.state = self.force_torque
+        return response
 
-        1
+    def env_step_cb(self, msg):
+        response = RLStepResponse()
+        info = "nothing"
+        # Perform the given action
+        action = msg.action 
+        success = self.move_offset(action)
+        if success == False:
+            response.info = "fail"
+        # Calculate the reward
+        cur_pose = self.move_group.get_current_pose()
+        new_state = self.force_torque
+        reward = self.calculate_reward()
+        # Determine if episode end
+        if cur_pose.pose.position.z > 0.4:
+            done = True
+        else:
+            done = False
+        # If we have any info ?
+        
+        # Return the result
+        response.state = new_state
+        response.reward = reward
+        response.done = done
+        response.info = info
+        return response
+
+
 
     def move_offset(self, offset):
         """
@@ -166,14 +234,29 @@ class MotionPlanner(object):
         new_pose.pose.position.x += 0  # offset.x
         new_pose.pose.position.y += 0  # offset.y
         new_pose.pose.position.z += 0.02
-        new_pose.pose.orientation.x = combined_quat[0]
-        new_pose.pose.orientation.y = combined_quat[1]
-        new_pose.pose.orientation.z = combined_quat[2]
-        new_pose.pose.orientation.w = combined_quat[3]
+        new_pose.pose.orientation.x = 0#combined_quat[0]
+        new_pose.pose.orientation.y = 0#combined_quat[1]
+        new_pose.pose.orientation.z = 0#combined_quat[2]
+        new_pose.pose.orientation.w = 0#combined_quat[3]
 
         self.move_group.stop()
         self.move_group.set_pose_target(new_pose)
-        self.move_group.go(wait=True)
+        self.move_group.go(wait=False)
+
+        start_time = time.time()
+        while True:
+            print("MOVING")
+            cur_pose = self.move_group.get_current_pose()
+            cur_p = np.array([cur_pose.pose.position.x, cur_pose.pose.position.y, cur_pose.pose.position.z])
+            end_p = np.array([new_pose.pose.position.x, new_pose.pose.position.y, new_pose.pose.position.z])
+            if np.allclose(cur_p, end_p, atol=0.005):
+                break
+            if time.time() - start_time > 3:
+                return False
+
+        
+        rospy.sleep(0.5)
+        return True
 
     @property
     def get_grasp(self):
@@ -198,29 +281,28 @@ if __name__ == "__main__":
     gripper_controller = rospy.Publisher('/gripper_control', Bool, queue_size=1)
     motion_planner.scene_reset_srv()
     motion_planner.move_group.set_max_velocity_scaling_factor(0.1)
-    while not rospy.is_shutdown():
+
+    rospy.spin()
+    # while not rospy.is_shutdown():
         
-        rospy.sleep(1)
+    #     rospy.sleep(.11)
         
-        success = motion_planner.go_to_pick(gripper_controller)
-        if success == False:
-            motion_planner.go_home("out_of_way")
-            motion_planner.scene_reset_srv()
-            continue
-        else:
-            while True: 
-                pose = motion_planner.move_group.get_current_pose()
-                if pose.pose.position.z < 0.3:
-                    motion_planner.move_offset([0, 0, 0])
-                    continue
-                else:
-                    break
-            motion_planner.move_group.set_max_velocity_scaling_factor(1)
-            motion_planner.go_home("out_of_way")
-            gripper_controller.publish(Bool(data=False))
-            motion_planner.go_home()
-
-
-
+    #     success = motion_planner.go_to_pick(gripper_controller)
+    #     if success == False:
+    #         motion_planner.go_home("out_of_way")
+    #         motion_planner.scene_reset_srv()
+    #         continue
+    #     else:
+    #         while True: 
+    #             pose = motion_planner.move_group.get_current_pose()
+    #             if pose.pose.position.z < 0.3:
+    #                 motion_planner.move_offset([0, 0, 0])
+    #                 continue
+    #             else:
+    #                 break
+    #         motion_planner.move_group.set_max_velocity_scaling_factor(1)
+    #         motion_planner.go_home("out_of_way")
+    #         gripper_controller.publish(Bool(data=False))
+    #         motion_planner.go_home()
 
     rospy.spin()

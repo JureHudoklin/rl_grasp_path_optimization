@@ -167,7 +167,7 @@ class GripperContact():
         vacuum_force = suction_cup_area*vacuum
 
         # External forces
-        f_ext, mom_ext = self.get_external_force()
+        f_ext, mom_ext = self.force, self.torque #self.get_external_force()
 
         max_wrench = {"f_x": coef_friction*(vacuum_force-f_ext[2]),
                       "f_y": coef_friction*(vacuum_force-f_ext[2]),
@@ -224,7 +224,10 @@ class GripperContact():
         """
 
         # External forces acting on an object. We must transform them to SC frame
-        if (self.simData.external_forceMom[0] == False) or (self.simData.external_forceMom[1] == 0) or (self.simData.external_forceMom[1] == 2):
+        if not hasattr(self.simData, "external_forceMom"):
+            self.simData.external_forceMom = [
+                True, 1, np.array([0, 0, 0]), np.array([0, 0, 0])]
+        elif (self.simData.external_forceMom[0] == False) or (self.simData.external_forceMom[1] == 0) or (self.simData.external_forceMom[1] == 2):
             self.simData.external_forceMom = [
                 True, 1, np.array([0, 0, 0]), np.array([0, 0, 0])]
 
@@ -235,7 +238,9 @@ class GripperContact():
         tf_force = self.simData.fs_GRIPPER_f[1]
         f_dir = np.dot(tf_force[:, 0:3], external_force)
         m_vec = np.dot(tf_force[:, 0:3], external_moment)
-        print(f_dir, m_vec)
+        self.force = f_dir
+        self.torque = m_vec
+
         return f_dir, m_vec
 
 
@@ -253,6 +258,7 @@ def epick_simple_sim_step(client, gripperContact):
     None : None
     """
     simData = gripperContact.simData
+    gripperContact.get_external_force()
 
     if gripperContact.seal_formed == False:
         if simData.vacuum_on:

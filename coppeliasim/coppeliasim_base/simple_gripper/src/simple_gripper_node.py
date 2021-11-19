@@ -8,7 +8,7 @@ import numpy as np
 
 from coppeliasim_remote_api.bluezero import b0RemoteApi
 from coppeliasim_master.msg import CoppeliaSimSynchronous
-from std_msgs.msg import Int32
+from std_msgs.msg import Int32, Float64MultiArray
 from std_msgs.msg import Bool
 
 import simple_gripper as sg
@@ -40,6 +40,8 @@ class CoppeliaSimGripperDriver(object):
         self.coppeliasim_synchrnous_trigger_pub = rospy.Publisher(
             "/coppeliasim_synchronous", CoppeliaSimSynchronous, queue_size=100)
         self.gripper_status_pub= rospy.Publisher('gripper_status',Int32, queue_size=10)
+        self.force_torque_pub = rospy.Publisher(
+            'force_torque', Float64MultiArray, queue_size=10)
 
         # set ros subscribers
         self.coppeliasim_synchrnous_trigger_sub = rospy.Subscriber(
@@ -121,6 +123,21 @@ class CoppeliaSimGripperDriver(object):
         """
         self.client.simxSetIntSignal('a', 0, client.simxDefaultPublisher())
 
+    def force_torque_publish(self):
+        """
+        Publish the force torque to rostopic: "force_torque"
+        """
+        force_torque = Float64MultiArray()
+        force_torque.data = [
+            self.gripper_contact.force[0],
+            self.gripper_contact.force[1],
+            self.gripper_contact.force[2],
+            self.gripper_contact.torque[0],
+            self.gripper_contact.torque[1],
+            self.gripper_contact.torque[2]
+        ]
+        self.force_torque_pub.publish(force_torque)
+
     def step_simulation(self):
         while not self.client.do_next_step:
             self.client.simxSpinOnce()
@@ -130,10 +147,12 @@ class CoppeliaSimGripperDriver(object):
                     rospy.signal_shutdown("Stoping ROS: Gripper")
                     return
             rospy.sleep(0.002)
-
+        # ------------------ What to do in sim step -------------------
         # Select simple or complex model of simulation
         sg.epick_simple_sim_step(self.client, self.gripper_contact)
-
+        # Publish the force torque
+        self.force_torque_publish()
+        # -------------------------------------------------------------
 
         self.client.do_next_step = False
         # Signal to master that we finished all calculations

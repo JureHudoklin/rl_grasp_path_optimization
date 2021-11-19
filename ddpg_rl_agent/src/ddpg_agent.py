@@ -1,3 +1,5 @@
+#! /usr/bin/python3
+# -*- coding: utf-8 -*-
 
 import os
 import numpy as np
@@ -8,7 +10,24 @@ from replay_buffer import ReplayBuffer, ActionNoise
 class Agent():
     def __init__(self, alpha, beta, input_dims, tau, n_actions, gamma=0.99,
                  max_size=1000000, fc1_dims=400, fc2_dims=300,
-                 batch_size=64):
+                 batch_size=10):
+        """
+        Agent for the DDPG algorithm. 
+        ----------
+        Arguments:
+            alpha {float} -- Learning rate for the actor network
+            beta {float} -- Learning rate for the critic network
+            input_dims {int} -- Dimension of the input (state)
+            tau {float} -- Soft update parameter. How much to update the target networks
+            n_actions {int} -- Number of actions the network can take
+            gamma {float} -- Discount factor for future rewards
+            max_size {int} -- Maximum size of the replay buffer
+            fc1_dims {int} -- Number of neurons in the first hidden layer
+            fc2_dims {int} -- Number of neurons in the second hidden layer
+            batch_size {int} -- Size of the batch to sample from the replay buffer
+        ----------
+        """
+            
         self.gamma = gamma # How fast the parameters get copied to target network
         self.tau = tau #??? DIscount rate
         self.batch_size = batch_size # How many experiences to sample from memory
@@ -34,6 +53,15 @@ class Agent():
         self.update_network_parameters(tau=1)
 
     def choose_action(self, observation):
+        """
+        Given an observation (state), returns an action.
+        ----------
+        Arguments:
+            observation {np.array} -- Observation (state)
+        ----------
+        Returns:
+            np.array -- Action
+        """
         # Put the actor network into evaluation mode
         self.actor.eval()
         # Put state into a tensor adn move the tensor to GPU
@@ -48,8 +76,22 @@ class Agent():
         # Return the action. Make sure to move the action to CPU so we can read it
         return mu_prime.cpu().detach().numpy()[0]
 
-    def remember(self, state, action, reward, state_, done):
-        self.memory.store_transition(state, action, reward, state_, done)
+    def remember(self, state, action, reward, next_state, done):
+        """
+        Remember an experience.
+        ----------
+        Arguments:
+            state {np.array} -- State
+            action {np.array} -- Action
+            reward {float} -- Reward
+            next_state {np.array} -- Next state
+            done {bool} -- Done
+        ----------
+        Returns:
+            None
+
+        """
+        self.memory.store_transition(state, action, reward, next_state, done)
 
     def save_models(self):
         self.actor.save_checkpoint()
@@ -65,18 +107,19 @@ class Agent():
 
     def learn(self):
         # Can't learn if there are not enough experiences in memory
-        if self.memory.mem_cntr < self.batch_size:
+        if self.memory.mem_counter < self.batch_size:
             return
 
         # Sample a random batch of experiences
-        states, actions, rewards, new_state, done = \
+        states, actions, rewards, new_states, done = \
             self.memory.sample_buffer(self.batch_size)
+        print(states, actions, rewards, new_states, done)
         # Convert everything to a tensor
         states = T.tensor(states, dtype=T.float).to(self.actor.device)
         new_states = T.tensor(new_states, dtype=T.float).to(self.actor.device)
         actions = T.tensor(actions, dtype=T.float).to(self.actor.device)
         rewards = T.tensor(rewards, dtype=T.float).to(self.actor.device)
-        done = T.tensor(done).to(self.actor.device)
+        done = T.tensor(done, dtype=T.bool).to(self.actor.device)
 
         ############# Critic Network #############
         # We use the target network to calculate the TD targets. 
