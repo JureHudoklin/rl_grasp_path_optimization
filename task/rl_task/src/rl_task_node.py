@@ -33,8 +33,13 @@ class MotionPlanner(object):
 
         self.move_group.set_pose_reference_frame(self.pose_reference_frame)
 
+        # Methods for calling services
         self.get_grasp_srv = rospy.ServiceProxy('get_grasp', GetGrasp)
         self.scene_reset_srv = rospy.ServiceProxy('scene_reset', Empty)
+
+        # Create services
+        # self.do_rl_step = rospy.Service(
+        #     "/rl_step_srv", RLStep, self.do_rl_step_cb)
 
         # sleep
         rospy.sleep(1)
@@ -125,25 +130,55 @@ class MotionPlanner(object):
 
         return True
 
+    def do_rl_step_cb(self, msg):
+        # Get one grasp
+        success = None
+        while success is not True:
+            for i in range(10):
+                success = motion_planner.go_to_pick(gripper_controller)
+                if success:
+                    break
+            else:
+                if success == False:
+                    motion_planner.go_home("out_of_way")
+                    motion_planner.scene_reset_srv()
+                continue
+
+        1
+
     def move_offset(self, offset):
         """
         Move the robot to the current pose plus the offset.
         Args:
             offset (`geometry_msgs/Point`): Offset to add to the current pose.
         """
+        cur_pose = self.move_group.get_current_pose()
+
+        frame_tf = tf.transformations.quaternion_matrix([cur_pose.pose.orientation.x,
+                                                         cur_pose.pose.orientation.y,
+                                                         cur_pose.pose.orientation.z,
+                                                         cur_pose.pose.orientation.w])
+        offset_matrix = tf.transformations.euler_matrix(offset[0], offset[1], offset[2], axes="sxyz")
+        combined_matrix = np.dot(frame_tf, offset_matrix)
+        combined_quat = tf.transformations.quaternion_from_matrix(combined_matrix)
+
+        new_pose = cur_pose
+        new_pose.pose.position.x += 0  # offset.x
+        new_pose.pose.position.y += 0  # offset.y
+        new_pose.pose.position.z += 0.02
+        new_pose.pose.orientation.x = combined_quat[0]
+        new_pose.pose.orientation.y = combined_quat[1]
+        new_pose.pose.orientation.z = combined_quat[2]
+        new_pose.pose.orientation.w = combined_quat[3]
+
         self.move_group.stop()
-        pose = self.move_group.get_current_pose()
-        pose.pose.position.x += 0#offset.x
-        pose.pose.position.y += 0#offset.y
-        pose.pose.position.z += 0.02
-        self.move_group.set_pose_target(pose)
+        self.move_group.set_pose_target(new_pose)
         self.move_group.go(wait=True)
-        #self.move_group.stop()
 
     @property
     def get_grasp(self):
         for i in range(10):
-            grasp_loc = motion_planner.get_grasp_srv(1)
+            grasp_loc = self.get_grasp_srv(1)
             grasp_loc = grasp_loc.grasp_tf
             grasp_loc = np.reshape(np.array(grasp_loc), (4, 4))
             if (grasp_loc==0).all():
@@ -162,6 +197,7 @@ if __name__ == "__main__":
 
     gripper_controller = rospy.Publisher('/gripper_control', Bool, queue_size=1)
     motion_planner.scene_reset_srv()
+    motion_planner.move_group.set_max_velocity_scaling_factor(0.1)
     while not rospy.is_shutdown():
         
         rospy.sleep(1)
@@ -173,10 +209,9 @@ if __name__ == "__main__":
             continue
         else:
             while True: 
-                motion_planner.move_group.set_max_velocity_scaling_factor(0.1)
                 pose = motion_planner.move_group.get_current_pose()
                 if pose.pose.position.z < 0.3:
-                    motion_planner.move_offset(0)
+                    motion_planner.move_offset([0, 0, 0])
                     continue
                 else:
                     break
