@@ -15,7 +15,7 @@ class ActionNoise(object):
         self.sigma = sigma
 
     def __call__(self):
-        return self.mu + self.sigma * np.random.randn(1)
+        return self.mu + self.sigma * np.random.randn(3)
 
 class ReplayBuffer(object):
     def __init__(self, buff_mem_size, input_shape, n_actions):

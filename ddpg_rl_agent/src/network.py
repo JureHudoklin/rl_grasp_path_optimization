@@ -18,6 +18,11 @@ class CriticNetwork(nn.Module):
         self.n_actions = n_actions
         self.name = name
         self.checkpoint_dir = chkpt_dir
+        try:
+            os.makedirs(self.checkpoint_dir)
+            print("Directory: ", self.checkpoint_dir, ". Created")
+        except FileExistsError:
+            print("Directory: ", self.checkpoint_dir, ". Already exists")
         self.checkpoint_file = os.path.join(self.checkpoint_dir, name+'_ddpg')
 
         # 2 Fully connected layers
@@ -83,17 +88,21 @@ class CriticNetwork(nn.Module):
 
     def save_checkpoint(self):
         print('... saving checkpoint ...')
-        # state = {'epoch': epoch + 1, 'state_dict': self.model.state_dict(),
-        #          'optimizer': self.optimizer.state_dict(), 'losslogger': losslogger, }
-        T.save(self.state_dict(), self.checkpoint_file)
+        # create model directory
+        state = {'state_dict': self.state_dict(),
+                 'optimizer': self.optimizer.state_dict()}
+        T.save(state, self.checkpoint_file)
 
     def load_checkpoint(self):
         print('... loading checkpoint ...')
-        self.load_state_dict(T.load(self.checkpoint_file))
+        loaded_data = T.load(self.checkpoint_file)
+        self.load_state_dict(loaded_data['state_dict'])
+        self.optimizer.load_state_dict(loaded_data['optimizer'])
 
     def save_best(self):
         print('... saving best checkpoint ...')
         checkpoint_file = os.path.join(self.checkpoint_dir, self.name+'_best')
+        # create model directory
         T.save(self.state_dict(), checkpoint_file)
 
 
@@ -108,6 +117,11 @@ class ActorNetwork(nn.Module):
         self.n_actions = n_actions
         self.name = name
         self.checkpoint_dir = chkpt_dir
+        try:
+            os.makedirs(self.checkpoint_dir)
+            print("Directory: ", self.checkpoint_dir, ". Created")
+        except FileExistsError:
+            print("Directory: ", self.checkpoint_dir, ". Already exists")
         self.checkpoint_file = os.path.join(self.checkpoint_dir, name+'_ddpg')
 
         self.fc1 = nn.Linear(self.input_dims, self.fc1_dims)
@@ -158,18 +172,24 @@ class ActorNetwork(nn.Module):
         x = self.bn2(x)
         x = F.relu(x)
         # Output scaled to [-1, 1]
-        x = T.tanh(self.mu(x))
+        x = T.tanh(self.mu(x))/5
         return x
 
     def save_checkpoint(self):
         print('... saving checkpoint ...')
-        T.save(self.state_dict(), self.checkpoint_file)
+        # create model directory
+        state = {'state_dict': self.state_dict(),
+                 'optimizer': self.optimizer.state_dict()}
+        T.save(state, self.checkpoint_file)
 
     def load_checkpoint(self):
         print('... loading checkpoint ...')
-        self.load_state_dict(T.load(self.checkpoint_file))
+        loaded_data = T.load(self.checkpoint_file)
+        self.load_state_dict(loaded_data['state_dict'])
+        self.optimizer.load_state_dict(loaded_data['optimizer'])
 
     def save_best(self):
         print('... saving best checkpoint ...')
         checkpoint_file = os.path.join(self.checkpoint_dir, self.name+'_best')
+        # create model directory
         T.save(self.state_dict(), checkpoint_file)

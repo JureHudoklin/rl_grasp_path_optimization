@@ -143,7 +143,6 @@ class Scene(object):
         --------------
         """
         for name in self._objects:
-            print(name)
             self.collision_manager.remove_object(name)
         self._objects = {}
         self._poses = {}

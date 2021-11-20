@@ -30,9 +30,11 @@ class MotionPlanner(object):
     def __init__(self, group_name, pose_reference_frame):
         self.group_name = group_name
         self.pose_reference_frame = pose_reference_frame
+        self.env_reset_counter = 0 
 
         self.move_group = moveit_commander.MoveGroupCommander(self.group_name)
         #self.scene = moveit_commander.PlanningSceneInterface()
+        self.move_group.set_planning_time(1)
 
         self.move_group.set_pose_reference_frame(self.pose_reference_frame)
 
@@ -156,18 +158,27 @@ class MotionPlanner(object):
                       "t_y": np.pi*model_r*0.005,
                       "t_z": model_r*coef_friction*(vacuum_force)/1000}
 
+        force_size = np.linalg.norm(self.force_torque[:3])
+        force_in_z_dir = self.force_torque[2]
+        force_reward = force_in_z_dir/force_size
         # Friction
         x_dir = np.sqrt(3)*abs(self.force_torque[0])/max_wrench["f_x"]
         y_dir = np.sqrt(3)*abs(self.force_torque[1])/max_wrench["f_y"]
         z_dir = abs(self.force_torque[2])/max_wrench["f_z"]
         x_torque = np.sqrt(2)*abs(self.force_torque[3])/max_wrench["t_x"]
         y_torque = np.sqrt(2)*abs(self.force_torque[4])/max_wrench["t_y"]
-        z_torque = np.sqrt(3)*abs(self.force_torque[5])/max_wrench["t_z"]
+        #z_torque = np.sqrt(3)*abs(self.force_torque[5])/max_wrench["t_z"]
 
-        reward = - x_dir - y_dir - x_torque - y_torque - z_torque
-        return reward
+        #reward = - x_dir - y_dir - x_torque - y_torque - z_torque
+        return force_reward
 
     def env_reset_cb(self, msg):
+        self.env_step_counter = 0
+        self.env_reset_counter += 1
+        if self.env_reset_counter % 10 == 0:
+            motion_planner.go_home("out_of_way")
+            motion_planner.scene_reset_srv()
+            rospy.sleep(1)
         response = RLResetResponse()
         # Get one grasp
         success = None
@@ -175,18 +186,22 @@ class MotionPlanner(object):
             for i in range(10):
                 success = motion_planner.go_to_pick(gripper_controller)
                 if success:
+                    rospy.sleep(1)
+                    if (np.array(self.force_torque) == 0).all(-1):
+                        continue
                     break
             else:
                 if success == False:
                     motion_planner.go_home("out_of_way")
                     motion_planner.scene_reset_srv()
+                    rospy.sleep(1)
                 continue
-        
-        rospy.sleep(1)
+        self.reward_previous = self.calculate_reward()
         response.state = self.force_torque
         return response
 
     def env_step_cb(self, msg):
+        self.env_step_counter += 1
         response = RLStepResponse()
         info = "nothing"
         # Perform the given action
@@ -199,7 +214,7 @@ class MotionPlanner(object):
         new_state = self.force_torque
         reward = self.calculate_reward()
         # Determine if episode end
-        if cur_pose.pose.position.z > 0.4:
+        if (cur_pose.pose.position.z) > 0.4 or (response.info == "fail"):
             done = True
         else:
             done = False
@@ -208,10 +223,16 @@ class MotionPlanner(object):
         # Return the result
         response.state = new_state
         response.reward = reward
+        #response.reward = (reward - self.reward_previous)
+        self.reward_previous = reward
+        #response.reward = reward
         response.done = done
         response.info = info
+        if done:
+            self.go_home()
+            gripper_controller.publish(Bool(data=False))
+            rospy.sleep(0.3)
         return response
-
 
 
     def move_offset(self, offset):
@@ -220,43 +241,83 @@ class MotionPlanner(object):
         Args:
             offset (`geometry_msgs/Point`): Offset to add to the current pose.
         """
+        # set planning start state
+        self.move_group.set_start_state_to_current_state()
         cur_pose = self.move_group.get_current_pose()
-
+        print(offset , "OFFSET !!!!!!!!!!!!!!!!!!!!!!!!!!")
         frame_tf = tf.transformations.quaternion_matrix([cur_pose.pose.orientation.x,
-                                                         cur_pose.pose.orientation.y,
-                                                         cur_pose.pose.orientation.z,
-                                                         cur_pose.pose.orientation.w])
-        offset_matrix = tf.transformations.euler_matrix(offset[0], offset[1], offset[2], axes="sxyz")
-        combined_matrix = np.dot(frame_tf, offset_matrix)
-        combined_quat = tf.transformations.quaternion_from_matrix(combined_matrix)
+                                                cur_pose.pose.orientation.y,
+                                                cur_pose.pose.orientation.z,
+                                                cur_pose.pose.orientation.w])
 
-        new_pose = cur_pose
-        new_pose.pose.position.x += 0  # offset.x
-        new_pose.pose.position.y += 0  # offset.y
-        new_pose.pose.position.z += 0.02
-        new_pose.pose.orientation.x = 0#combined_quat[0]
-        new_pose.pose.orientation.y = 0#combined_quat[1]
-        new_pose.pose.orientation.z = 0#combined_quat[2]
-        new_pose.pose.orientation.w = 0#combined_quat[3]
+        for i in range(1,6):
 
-        self.move_group.stop()
-        self.move_group.set_pose_target(new_pose)
-        self.move_group.go(wait=False)
+            offset_matrix = tf.transformations.euler_matrix(
+                offset[0], offset[1], offset[2], axes="sxyz")
+            combined_matrix = np.dot(frame_tf, offset_matrix)
+            combined_quat = tf.transformations.quaternion_from_matrix(combined_matrix)
 
-        start_time = time.time()
-        while True:
-            print("MOVING")
-            cur_pose = self.move_group.get_current_pose()
-            cur_p = np.array([cur_pose.pose.position.x, cur_pose.pose.position.y, cur_pose.pose.position.z])
-            end_p = np.array([new_pose.pose.position.x, new_pose.pose.position.y, new_pose.pose.position.z])
-            if np.allclose(cur_p, end_p, atol=0.005):
-                break
-            if time.time() - start_time > 3:
-                return False
+            new_pose = cur_pose
+            new_pose.pose.position.x += 0# + offset[3]/i
+            new_pose.pose.position.y += 0# + offset[4]/i
+            new_pose.pose.position.z += 0.02
+            new_pose.pose.orientation.x = combined_quat[0]
+            new_pose.pose.orientation.y = combined_quat[1]
+            new_pose.pose.orientation.z = combined_quat[2]
+            new_pose.pose.orientation.w = combined_quat[3]
 
-        
-        rospy.sleep(0.5)
-        return True
+            # plan from current pose to approach pose
+            waypoints = []
+            # waypoints.append(self.get_current_pose().pose)
+            waypoints.append(new_pose.pose)
+            self.move_group.set_pose_target(waypoints[0])
+            offset_move_plan = self.move_group.plan()
+            # (offset_move_plan, fraction) = self.move_group.compute_cartesian_path(
+            #     waypoints,
+            #     eef_step=0.001,
+            #     jump_threshold=0.0,
+            # )
+            if len(offset_move_plan.joint_trajectory.points) <= 1:
+                rospy.logwarn(
+                    '[{}] Place approach pose motion plan failed!'.format(self.group_name))
+                continue
+            elif len(offset_move_plan.joint_trajectory.points) > 35:
+                rospy.logwarn(
+                    '[{}] Number of trajectory points'.format(len(offset_move_plan.joint_trajectory.points)))
+                continue
+            else:
+                self.execute_plan(offset_move_plan)
+                rospy.sleep(0.5)
+                return True
+        else:
+            return False
+
+
+    def execute_plan(self, plan, auto=True):
+        """
+        A wrapper for MoveIt function move_group.execute(). Makes the robot do the executed the given plan.
+        --------------
+        plan : RobotTrajectory() (MoveIt RobotTrajectory MSG)
+            A motion plan to be executed
+        auto : `Bool`
+            If true, robot will be executed with out user confirmation.
+        --------------
+        """
+        if plan == None:
+            raise ValueError("Plan is non existant.")
+
+        #self.display_planned_path(plan)
+
+        if auto is True:
+            self.move_group.execute(plan, wait=True)
+            self.move_group.stop()
+        elif auto is False:
+            # rospy.loginfo("Excute the plan")
+            self.confirm_to_execution()
+            self.move_group.execute(plan, wait=True)
+            self.move_group.stop()
+            rospy.loginfo("Finish execute")
+        plan = None
 
     @property
     def get_grasp(self):

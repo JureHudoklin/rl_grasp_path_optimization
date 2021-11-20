@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import datetime
 import numpy as np
 import torch as T
 import torch.nn.functional as F
@@ -10,7 +11,7 @@ from replay_buffer import ReplayBuffer, ActionNoise
 class Agent():
     def __init__(self, alpha, beta, input_dims, tau, n_actions, gamma=0.99,
                  max_size=1000000, fc1_dims=400, fc2_dims=300,
-                 batch_size=10):
+                 batch_size=10, model_dir=None):
         """
         Agent for the DDPG algorithm. 
         ----------
@@ -37,17 +38,22 @@ class Agent():
         self.memory = ReplayBuffer(max_size, input_dims, n_actions)
 
         self.noise = ActionNoise(0.05, 0)
+        if model_dir is None:
+            cur_date = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+            model_dir = "/home/jure/reinforcement_ws/src/ddpg_rl_agent/src/checkpoints"
+            model_dir = os.path.join(model_dir, cur_date)
+            #log_dir = os.path.join(model_dir, "logs")
 
         self.actor = ActorNetwork(alpha, input_dims, fc1_dims, fc2_dims,
-                                  n_actions=n_actions, name='actor')
+                                  n_actions=n_actions, name='actor', chkpt_dir=model_dir)
         self.critic = CriticNetwork(beta, input_dims, fc1_dims, fc2_dims,
-                                    n_actions=n_actions, name='critic')
+                                    n_actions=n_actions, name='critic', chkpt_dir=model_dir)
 
         self.target_actor = ActorNetwork(alpha, input_dims, fc1_dims, fc2_dims,
-                                         n_actions=n_actions, name='target_actor')
+                                         n_actions=n_actions, name='target_actor', chkpt_dir=model_dir)
 
         self.target_critic = CriticNetwork(beta, input_dims, fc1_dims, fc2_dims,
-                                           n_actions=n_actions, name='target_critic')
+                                           n_actions=n_actions, name='target_critic', chkpt_dir=model_dir)
 
         # First time call so the target and the base networks have same parameters
         self.update_network_parameters(tau=1)
@@ -113,13 +119,17 @@ class Agent():
         # Sample a random batch of experiences
         states, actions, rewards, new_states, done = \
             self.memory.sample_buffer(self.batch_size)
-        print(states, actions, rewards, new_states, done)
         # Convert everything to a tensor
         states = T.tensor(states, dtype=T.float).to(self.actor.device)
         new_states = T.tensor(new_states, dtype=T.float).to(self.actor.device)
         actions = T.tensor(actions, dtype=T.float).to(self.actor.device)
         rewards = T.tensor(rewards, dtype=T.float).to(self.actor.device)
         done = T.tensor(done, dtype=T.bool).to(self.actor.device)
+
+        self.actor.eval()
+        self.target_actor.eval()
+        self.critic.eval()
+        self.target_critic.eval()
 
         ############# Critic Network #############
         # We use the target network to calculate the TD targets. 
@@ -140,6 +150,7 @@ class Agent():
         target = rewards + self.gamma*target_Q_value
         target = target.view(self.batch_size, 1)
 
+        self.critic.train()
         # Backpropagete the critic network
         self.critic.optimizer.zero_grad()
         critic_loss = F.mse_loss(target, Q_value)
@@ -148,10 +159,14 @@ class Agent():
         ############# END #############
  
         ############# Actor Network #############
-        self.actor.optimizer.zero_grad()
+        self.critic.eval()
+        
         # We calculate the Q value using the actions that are predicted by the actor network.
         # _ since we want to maximize the Q value
-        actor_loss = -self.critic.forward(states, self.actor.forward(states))
+        mu = self.actor.forward(states)
+        self.actor.optimizer.zero_grad()
+        self.actor.train()
+        actor_loss = -self.critic.forward(states, mu)
         actor_loss = T.mean(actor_loss)
         actor_loss.backward()
         self.actor.optimizer.step()

@@ -117,7 +117,7 @@ class GripperContact():
         self.contact_object = -1
         self.simData = simData
 
-    def formSeal(self, max_dist=0.060):
+    def formSeal(self, max_dist=0.080):
         """
         Formes a seal if an object is close enough to the proximity sensor of the suction cup .
         --------------
@@ -225,8 +225,11 @@ class GripperContact():
 
         # External forces acting on an object. We must transform them to SC frame
         if not hasattr(self.simData, "external_forceMom"):
-            self.simData.external_forceMom = [
-                True, 1, np.array([0, 0, 0]), np.array([0, 0, 0])]
+            return np.zeros(3), np.zeros(3)
+        if not hasattr(self.simData, "fs_GRIPPER_f"):
+            return np.zeros(3), np.zeros(3)
+            # self.simData.external_forceMom = [
+            #     True, 1, np.array([0, 0, 0]), np.array([0, 0, 0])]
         elif (self.simData.external_forceMom[0] == False) or (self.simData.external_forceMom[1] == 0) or (self.simData.external_forceMom[1] == 2):
             self.simData.external_forceMom = [
                 True, 1, np.array([0, 0, 0]), np.array([0, 0, 0])]

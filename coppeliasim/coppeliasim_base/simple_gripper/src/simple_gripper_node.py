@@ -1,6 +1,7 @@
 #! /usr/bin/python2
 # -*- coding: utf-8 -*-
 
+from numpy.lib import histograms
 import rospy
 import string
 import random
@@ -128,6 +129,8 @@ class CoppeliaSimGripperDriver(object):
         Publish the force torque to rostopic: "force_torque"
         """
         force_torque = Float64MultiArray()
+        if not hasattr(self.gripper_contact, "force"):
+            return
         force_torque.data = [
             self.gripper_contact.force[0],
             self.gripper_contact.force[1],
@@ -177,6 +180,7 @@ if __name__ == '__main__':
     sim = CoppeliaSimGripperDriver(client, client_ID, gripper_contact)
 
     print("EPick ClientStart")
+    rospy.sleep(3)
 
     while not rospy.is_shutdown():
         sim.step_simulation()
