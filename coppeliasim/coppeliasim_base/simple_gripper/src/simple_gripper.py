@@ -241,8 +241,8 @@ class GripperContact():
         tf_force = self.simData.fs_GRIPPER_f[1]
         f_dir = np.dot(tf_force[:, 0:3], external_force)
         m_vec = np.dot(tf_force[:, 0:3], external_moment)
-        self.force = f_dir
-        self.torque = m_vec
+        self.force = external_force
+        self.torque = external_moment
 
         return f_dir, m_vec
 

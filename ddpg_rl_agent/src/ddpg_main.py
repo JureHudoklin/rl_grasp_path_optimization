@@ -2,99 +2,104 @@
 # -*- coding: utf-8 -*-
 
 import os
-from ddpg_agent import Agent
-from rl_task.srv import RLStep, RLStepResponse
-from rl_task.srv import RLReset, RLResetResponse
-
-import rospy
+from replay_buffer import Agent
+from environment import *
 import numpy as np
+import tensorflow as tf
 import datetime
-
-
-class SimulationEnvironment(object):
-    def __init__(self):
-
-        # Create service client
-        self.env_step_srv = rospy.ServiceProxy('/rl_step_srv', RLStep)
-        self.env_reset_srv = rospy.ServiceProxy('/rl_reset_srv', RLReset)
-        rospy.sleep(1)
-
-    def env_step(self, action):
-        """
-        Performs one step of the environment.
-        """
-        # Send the action
-        step_action = [action[0]/5, action[1]/5, action[2]/5, 0, 0]
-        # Get response
-        step_response = self.env_step_srv(step_action)
-        # Format the response
-        new_state = np.array(step_response.state)
-        reward = np.array(step_response.reward)
-        done = np.array(step_response.done)
-        info = np.array(step_response.info)
-        # Return the result
-        return new_state, reward, done, info
-
-    def env_reset(self):
-        response = self.env_reset_srv([0.1, 0.1, 0.1, 0.1, 0.1])
-        start_state = np.array(response.state)
-        return start_state
+import time
 
 
 if __name__ == "__main__":
-    rospy.init_node('agent_node')
+    start_time = time.time()
+    # solve tensorflow memory issue
+    physical_devices = tf.config.list_physical_devices('GPU')
+    tf.config.experimental.set_memory_growth(
+        physical_devices[0], True)  # allow memory growth
+
+    environment = Environment(
+        "/home/jure/programming/reinforcement_learning_project/meshes/object_5.obj")
 
     # ----------------- Where to save/load the models from-----------------
-    #model_dir = "/home/jure/reinforcement_ws/src/ddpg_rl_agent/src/checkpoints/20211120-180856"
+    #model_dir = "/home/jure/programming/reinforcement_learning_project/checkpoints/20211123-235121"
     cur_date = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    model_dir = "/home/jure/reinforcement_ws/src/ddpg_rl_agent/src/checkpoints/20211120-230404"
+    model_dir = "/home/jure/programming/reinforcement_learning_project/checkpoints"
     model_dir = os.path.join(model_dir, cur_date)
     #---------------------------------------------------------------------------------
-    ddpg_agent = Agent(0.01, 0.01, 6, 0.001, 3, batch_size=32,model_dir=model_dir)
-    environment = SimulationEnvironment()
-    #environment.env_reset()
+    ddpg_agent = Agent(4, 6, -np.pi, np.pi,
+                       batch_size=128,
+                       learning_rate_actor=0.0005, learning_rate_critic=0.0005,
+                       noise_std_dev=0.3,
+                       noise_theta=0.15,
+                       noise_dt=0.01,
+                       gamma=0.99,
+                       tau=0.001,
+                       model_dir=model_dir)
 
-    num_of_episodes = 1000
-    episode_number = 100
-    score_history = []
+    #ddpg_agent.load_checkpoint()
+    #ddpg_agent.buffer.load_buffer(950)
+
+    num_of_episodes = 100001
+    episode_number = 1 # 151
+    ep_reward_list = []
+    avg_reward_list = []
     best_score = -np.inf
 
-    #ddpg_agent.load_models()
-
-
     while episode_number < num_of_episodes:
-        # Reset the environment
-        state = environment.env_reset()
-        done = False
-        score = 0
-        step_i = 0
-        while not done:
-            step_i += 1
-            action = ddpg_agent.choose_action(state)
-            new_state, reward, done, info = environment.env_step(action)
-            print(reward)
-            if info == "fail":
-                break
-            if reward < -10:
-                break
-            ddpg_agent.remember(state, action, reward, new_state, done)
+        failed_episode = False
+        state = environment.reset()
+        episodic_reward = 0
+        step_i = 1
+        while True:
+            tf_state = tf.expand_dims(tf.convert_to_tensor(state), 0)
+            action = ddpg_agent.sample_action(tf_state)[0]
+            new_state, reward, done, info = environment.step(action)
+           
+            ddpg_agent.buffer.record((state, action, reward, new_state))
+            
             ddpg_agent.learn()
-            score += reward
+            ddpg_agent.update_target(ddpg_agent.target_actor.model.variables,
+                          ddpg_agent.actor.model.variables)
+            ddpg_agent.update_target(ddpg_agent.target_critic.model.variables,
+                          ddpg_agent.critic.model.variables)
+
+            episodic_reward += reward
             state = new_state
-        score = score/step_i
-        score_history.append(score)
-        avg_score = np.mean(score_history[-20:])
+            step_i += 1
+            if done or step_i > 200:
+                break
+            
 
-        if avg_score > best_score:
-            best_score = avg_score
-            ddpg_agent.save_models()
-        
+        episodic_reward = episodic_reward / step_i
+
+        if episode_number % 10000 == 0:
+            # ddpg_agent.buffer.save_buffer(episode_number)
+            # ddpg_agent.save_checkpoint(episode_number)
+            np.savez(model_dir + f"/{episode_number}",
+                    {"episodic_reward" : np.array(ep_reward_list)})
+            #ddpg_agent.noise_object.reset()
+
         if episode_number % 10 == 0:
-            print(score_history, " SCORE HISTORY")
-            print('Episode: %d, Average Score: %f, Best Score: %f' % (episode_number, avg_score, best_score))
-            np.save(model_dir + f"/{episode_number}.npz", np.array(score_history))
-        
+            ddpg_agent.noise_object.reset()
+            ddpg_agent.noise_object.std_dev -= 0.0002
 
-        print('episode ', episode_number, 'score %.5f' %
-              score, 'average score %.5f' % avg_score)
+        print("Number of steps in episode", step_i)
+
+        ep_reward_list.append(episodic_reward)
+
+        # Mean of last 40 episodes
+        avg_reward = np.mean(ep_reward_list[-100:])
+
+        if avg_reward > best_score:
+            best_score = avg_reward
+            ddpg_agent.buffer.save_buffer("best")
+            ddpg_agent.save_checkpoint("best", overwrite=True)
+
+        print("Episode * {} * Avg Reward is ==> {}".format(episode_number, avg_reward))
+        avg_reward_list.append(avg_reward)
+
         episode_number += 1
+
+    print("--------------------------------------------------------")
+    print("Finished calculations in: %s seconds" % (time.time() - start_time))
+    print("-------------------------END----------------------------")

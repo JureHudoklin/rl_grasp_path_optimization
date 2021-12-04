@@ -1,5 +1,4 @@
 <launch>
     <!--- Run CoppeliaSim master client -->
-    <node pkg="ddpg_rl_agent" type="ddpg_main.py" name="ddpg_agent" output="screen" />
-
+    <node pkg="ddpg_rl_agent" type="test_lstm.py" name="ddpg_agent" output="screen" />
 </launch>

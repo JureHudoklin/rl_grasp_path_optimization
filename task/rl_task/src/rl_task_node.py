@@ -170,7 +170,8 @@ class MotionPlanner(object):
         #z_torque = np.sqrt(3)*abs(self.force_torque[5])/max_wrench["t_z"]
 
         #reward = - x_dir - y_dir - x_torque - y_torque - z_torque
-        return force_reward
+        reward = -(abs(self.force_torque[3]) + abs(self.force_torque[4]))
+        return reward
 
     def env_reset_cb(self, msg):
         self.env_step_counter = 0
@@ -281,7 +282,7 @@ class MotionPlanner(object):
                 rospy.logwarn(
                     '[{}] Place approach pose motion plan failed!'.format(self.group_name))
                 continue
-            elif len(offset_move_plan.joint_trajectory.points) > 35:
+            elif len(offset_move_plan.joint_trajectory.points) > 60:
                 rospy.logwarn(
                     '[{}] Number of trajectory points'.format(len(offset_move_plan.joint_trajectory.points)))
                 continue
@@ -341,7 +342,7 @@ if __name__ == "__main__":
 
     gripper_controller = rospy.Publisher('/gripper_control', Bool, queue_size=1)
     motion_planner.scene_reset_srv()
-    motion_planner.move_group.set_max_velocity_scaling_factor(0.1)
+    motion_planner.move_group.set_max_velocity_scaling_factor(1)
 
     rospy.spin()
     # while not rospy.is_shutdown():

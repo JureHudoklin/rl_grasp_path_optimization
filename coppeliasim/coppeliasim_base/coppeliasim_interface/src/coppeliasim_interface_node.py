@@ -260,7 +260,7 @@ class CoppeliaSimInterface(object):
                 if a_v[2] < 0:
                     continue
                 for i in range(10):
-                    a_v_noise = vector_with_noise(a_v, 0.6)
+                    a_v_noise = vector_with_noise(a_v, 0.2)
                     tf = np.array(trimesh.geometry.align_vectors(np.array([0,0,-1]), a_v_noise))
                     tf[0:3,3] = sample
                     grasp_viable = self.tri_scene.is_colliding(self.tri_scene.gripper_mesh, tf)
@@ -281,6 +281,7 @@ class CoppeliaSimInterface(object):
 
     def scene_reset_srv_cb(self, request):
         rospy.loginfo("Resetting the scene")
+        rospy.sleep(2)
         for object in self.objects:
             x = random.uniform(0.33, 0.67)
             y = random.uniform(-0.27, 0.27)
@@ -290,7 +291,7 @@ class CoppeliaSimInterface(object):
                 -1,
                 [x, y, z],
                 self.client.simxServiceCall())
-
+        rospy.sleep(1)
         return EmptyResponse()
 
     def coppeliasim_synchronous_done(self):
@@ -383,6 +384,7 @@ if __name__ == '__main__':
     rospy.init_node('coppeliasim_interface')
 
     object_list = ["object_"+str(i) for i in range(0,17)]
+    #object_list = ["object_5"]
 
     # init sim
     client_ID = 'b0RemoteApi_interface_client_{}'.format(id_generator())
